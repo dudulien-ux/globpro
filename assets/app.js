@@ -24,17 +24,10 @@
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  function ago(t) {
-    const s = Math.max(0, (now() - t) / 1000);
-    if (s < 60) return 'just now';
-    const m = s / 60; if (m < 60) return Math.round(m) + ' min ago';
-    const h = Math.round(m / 60); if (m < 60 * 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
-    const d = Math.round(m / 1440); if (d < 14) return d + (d === 1 ? ' day ago' : ' days ago');
-    if (d < 60) return Math.round(d / 7) + ' weeks ago';
-    if (d < 365) return Math.round(d / 30) + ' months ago';
-    const y = Math.round(d / 365); return y + (y === 1 ? ' year ago' : ' years ago');
-  }
-  const fmtDate = t => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Times, dates and numbers come from assets/i18n.js, so they follow the page's language.
+  const ago = t => I18N.ago(t, now());
+  const tx = I18N.t;   // a word from the dictionary, by key
+  const fmtDate = t => I18N.date(t);
   function hav(la1, lo1, la2, lo2) {
     const a = Math.sin((la2 - la1) * RAD / 2) ** 2 + Math.cos(la1 * RAD) * Math.cos(la2 * RAD) * Math.sin((lo2 - lo1) * RAD / 2) ** 2;
     return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
@@ -82,7 +75,7 @@
   let S = load();
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(S)); return true; }
-    catch (e) { toast("Couldn't save in this browser (storage full or blocked). Your changes last until you close the page."); return false; }
+    catch (e) { toast(tx('msg.cantSave')); return false; }
   }
 
   /* ───────── who is using it ───────── */
@@ -373,7 +366,7 @@
   function needMe(returnTo) {
     if (who()) return true;
     S.returnTo = returnTo || location.hash || '#home'; save();
-    toast('Join first. It takes twenty seconds, and it stays on this device.');
+    toast(tx('msg.joinFirst'));
     go('#join');
     return false;
   }
@@ -382,7 +375,7 @@
   function updateChrome() {
     const u = who(), pr = meP(), me = $('#meBtn');
     if (pr) { me.outerHTML = avatar(u, '', true).replace('<a ', '<a id="meBtn" ').replace(/href="[^"]*"/, 'href="#me"'); }
-    else { me.outerHTML = '<a class="avatar" id="meBtn" href="#join" aria-label="Join" style="background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line-2);font-family:var(--body);font-weight:400;font-size:22px">+</a>'; }
+    else { me.outerHTML = '<a class="avatar" id="meBtn" href="#join" aria-label="' + esc(tx('a11y.join')) + '" style="background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line-2);font-family:var(--body);font-weight:400;font-size:22px">+</a>'; }
     const n = u ? unread(u) : 0, b = $('#bellCount');
     b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
     const ab = $('#actAsBanner');
@@ -432,7 +425,7 @@
   }
   function stepper(st) {
     const lis = CYCLE.map((c, i) => `<li class="c${i} ${i < st || st >= 6 ? 'done' : ''} ${i === st && st < 6 ? 'now' : ''}">${c[0]}</li>`).join('');
-    return `<ol class="stepper" aria-label="Where this is in the cycle">${lis}</ol>` +
+    return `<ol class="stepper" aria-label="${esc(tx('a11y.cycle'))}">${lis}</ol>` +
       (st >= 6 ? '' : `<p class="stepnow">Now: <b>${CYCLE[st][0]}</b> (${esc(CYCLE[st][1])})</p>`);
   }
   function pcard(p) {
@@ -503,7 +496,7 @@
       ${full ? `<button class="btn ghost" type="button" data-act="share" data-id="${id}">Copy link</button><button class="btn ghost" type="button" data-act="report" data-id="${id}">Report</button>` : ''}
     </div>`;
     if (ui.ask === p.id) h += `<form class="inline-form" data-form="ask" data-id="${id}"><div class="row">
-      <input class="input" name="q" maxlength="200" required placeholder="A question, not a solution" aria-label="Your question">
+      <input class="input" name="q" maxlength="200" required placeholder="${esc(tx('ph.question'))}" aria-label="${esc(tx('a11y.yourQuestion'))}">
       <button class="btn primary" type="submit">Ask</button></div></form>`;
     if (ui.join === p.id && st < 6) {
       const open = p.needs.length ? openSkills(p) : W.skills, mineM = p.team.find(m => m.by === u);
@@ -531,7 +524,7 @@
     let h = `<li>${who1}<div class="q">${esc(q.text)}</div>`;
     if (q.answer) h += `<div class="ans"><div class="who">${avatar(q.answer.by, 'sm')}${profileLink(q.answer.by)}<span>· ${ago(q.answer.t)}</span></div>${esc(q.answer.text)}</div>`;
     if (canAnswer) h += ui.answer === q.id
-      ? `<form class="inline-form" data-form="answer" data-id="${esc(p.id)}" data-q="${esc(q.id)}"><div class="row"><input class="input" name="a" maxlength="300" required placeholder="Your answer" aria-label="Your answer"><button class="btn primary" type="submit">Answer</button></div></form>`
+      ? `<form class="inline-form" data-form="answer" data-id="${esc(p.id)}" data-q="${esc(q.id)}"><div class="row"><input class="input" name="a" maxlength="300" required placeholder="${esc(tx('ph.answer'))}" aria-label="${esc(tx('a11y.yourAnswer'))}"><button class="btn primary" type="submit">Answer</button></div></form>`
       : `<button class="linkish" type="button" data-act="answer" data-id="${esc(p.id)}" data-q="${esc(q.id)}" style="margin-top:6px">Answer</button>`;
     return h + '</li>';
   }
@@ -545,7 +538,7 @@
     if (p.project || !inTeam(p, u)) return '';
     const ready = p.team.length >= 2 || (p.needs.length && !openSkills(p).length);
     if (ui.form === p.id) return `<form class="inline-form" data-form="project" data-id="${esc(p.id)}"><div class="field" style="margin:0 0 10px"><label for="pjName">Name the project</label>
-      <input class="input" id="pjName" name="name" maxlength="60" required placeholder="A short name people will remember"></div>
+      <input class="input" id="pjName" name="name" maxlength="60" required placeholder="${esc(tx('ph.projectName'))}"></div>
       <div class="row"><button class="btn primary" type="submit">Form the project</button><button class="btn" type="button" data-act="form" data-id="${esc(p.id)}">Cancel</button></div></form>`;
     return ready ? `<p style="margin:14px 0 0"><button class="btn primary" type="button" data-act="form" data-id="${esc(p.id)}">Form the project</button></p>`
       : '<p class="small mono muted" style="margin:12px 0 0">A project needs at least two people, or every skill covered.</p>';
@@ -556,7 +549,7 @@
     h += pr.updates.length ? `<ul class="updates">${pr.updates.map(u => `<li>${esc(u.text)}<span class="w">${esc(nameOf(u.by))} · ${ago(u.t)}</span></li>`).join('')}</ul>` : '<p class="small mono muted">No updates yet.</p>';
     if (member && !pr.resolved) {
       h += `<form class="inline-form" data-form="update" data-id="${esc(p.id)}"><div class="field" style="margin:0 0 10px"><label for="upText">Post an update</label>
-        <textarea class="textarea" id="upText" name="u" maxlength="400" required placeholder="What did the team do? What happened?"></textarea></div>
+        <textarea class="textarea" id="upText" name="u" maxlength="400" required placeholder="${esc(tx('ph.update'))}"></textarea></div>
         <div class="row"><button class="btn primary" type="submit">Post update</button><button class="btn" type="button" data-act="resolve" data-id="${esc(p.id)}">Mark resolved</button></div></form>`;
     } else if (member && pr.resolved) {
       h += `<p style="margin:14px 0 0"><button class="btn" type="button" data-act="reopen" data-id="${esc(p.id)}">Reopen</button></p>`;
@@ -661,11 +654,11 @@
       v.innerHTML = `<div class="wrap"><header class="page-head"><div><h1>Problems</h1><p class="sub" id="pSub"></p></div>
         <a class="btn primary" href="#map" data-action="post">${esc(W.prompt)}</a></header>
         <div class="toolbar" role="search">
-          <input class="input" id="pQ" type="search" placeholder="Search problems and places" aria-label="Search problems">
-          <select class="select" id="pScale" aria-label="Scale"><option value="">Any scale</option>${SCALES.map(s => `<option value="${s[0]}">${s[1]}</option>`).join('')}</select>
-          <select class="select" id="pStage" aria-label="Stage"><option value="">Any stage</option>${STAGE_GROUPS.map(g => `<option value="${g[0]}">${g[1]}</option>`).join('')}</select>
-          <select class="select" id="pTag" aria-label="Topic"><option value="">Any topic</option>${D.TAGS.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
-          <select class="select" id="pSort" aria-label="Sort"><option value="new">Newest</option><option value="seen">Most seen</option><option value="help">Needs people</option><option value="active">Recently active</option></select>
+          <input class="input" id="pQ" type="search" placeholder="${esc(tx('ph.searchProblems'))}" aria-label="${esc(tx('a11y.searchProblems'))}">
+          <select class="select" id="pScale" aria-label="${esc(tx('a11y.scale'))}"><option value="">Any scale</option>${SCALES.map(s => `<option value="${s[0]}">${s[1]}</option>`).join('')}</select>
+          <select class="select" id="pStage" aria-label="${esc(tx('a11y.stage'))}"><option value="">Any stage</option>${STAGE_GROUPS.map(g => `<option value="${g[0]}">${g[1]}</option>`).join('')}</select>
+          <select class="select" id="pTag" aria-label="${esc(tx('a11y.topic'))}"><option value="">Any topic</option>${D.TAGS.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select>
+          <select class="select" id="pSort" aria-label="${esc(tx('a11y.sort'))}"><option value="new">Newest</option><option value="seen">Most seen</option><option value="help">Needs people</option><option value="active">Recently active</option></select>
         </div><h2 class="sr-only">Problems in this list</h2><div id="pList"></div></div>`;
       v.dataset.built = '1';
       const upd = () => { PF.q = $('#pQ').value; PF.scale = $('#pScale').value; PF.stage = $('#pStage').value; PF.tag = $('#pTag').value; PF.sort = $('#pSort').value; renderPList(); };
@@ -790,7 +783,7 @@
   };
   function demoTools() {
     const ppl = Object.values(S.profiles).filter(p => p.id !== S.me);
-    return `<div class="setting" style="margin-top:18px"><h3>Demo tools</h3>
+    return `<div class="setting" style="margin-top:18px"><h2>Demo tools</h2>
       <p>Try it from someone else's side: act as a sample person, then switch back to see what reached you.</p>
       <div class="field"><label for="actAsSel">Act as</label><select class="select" id="actAsSel" data-act-change="actAs"><option value="">${S.me ? 'Me (' + esc(nameOf(S.me)) + ')' : 'Nobody'}</option>${ppl.map(p => `<option value="${esc(p.id)}"${S.actAs === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
       <label class="check" style="margin:0 0 14px"><input type="checkbox" data-act-change="teamMode"${S.teamMode ? ' checked' : ''}> Team mode: see reports and hidden posts (the <a href="#mod">moderation page</a>)</label>
@@ -799,7 +792,7 @@
   function profileFields(pr) {
     pr = pr || {};
     return `<div class="field"><label for="jfName">First name or nickname</label><input class="input" id="jfName" name="name" maxlength="30" required autocomplete="given-name" value="${esc(pr.name || '')}"></div>
-      <div class="field"><label for="jfCity">Your city</label><input class="input" id="jfCity" name="city" list="cityList" maxlength="60" required autocomplete="off" value="${esc(pr.city ? pr.city + (pr.country ? ', ' + pr.country : '') : '')}" placeholder="Start typing, e.g. Hội An">
+      <div class="field"><label for="jfCity">Your city</label><input class="input" id="jfCity" name="city" list="cityList" maxlength="60" required autocomplete="off" value="${esc(pr.city ? pr.city + (pr.country ? ', ' + pr.country : '') : '')}" placeholder="${esc(tx('ph.city'))}">
         <span class="hint">Only the city shows. Never your street.</span></div>
       <fieldset class="field" style="border:0;padding:0;margin:0 0 18px"><legend class="flabel" style="font:700 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">What you can bring</legend>
         <div class="opts">${W.skills.map(s => `<label class="opt"><input type="checkbox" name="skill" value="${esc(s)}"${(pr.skills || []).includes(s) ? ' checked' : ''}><span>${esc(s)}</span></label>`).join('')}</div></fieldset>
@@ -827,7 +820,7 @@
       <form class="formcard" data-form="join" novalidate>
         <p class="okbox">Demo: your profile is saved only in this browser. In the real version you'd get an invite code from your group.</p>
         ${profileFields(null)}
-        <div class="field"><label for="jfCode">Invite code</label><input class="input" id="jfCode" name="code" maxlength="20" autocomplete="off" placeholder="From your group"><span class="hint">Beta is invite-only, so strangers can't join. Any code works in the demo.</span></div>
+        <div class="field"><label for="jfCode">Invite code</label><input class="input" id="jfCode" name="code" maxlength="20" autocomplete="off" placeholder="${esc(tx('ph.inviteCode'))}"><span class="hint">Beta is invite-only, so strangers can't join. Any code works in the demo.</span></div>
         <label class="check" style="margin:6px 0 20px"><input type="checkbox" name="agree" required> I've read the <a href="#trust">community guidelines</a>.</label>
         <div id="joinErr"></div>
         <button class="btn primary big" type="submit">Join</button>
@@ -1010,7 +1003,7 @@
   }
   function renderPanel() {
     const b = $('#mpanelBody');
-    const head = t => `<div class="p-head"><span class="label">${t}</span><button class="x" type="button" data-act="closePanel" aria-label="Close">×</button></div>`;
+    const head = t => `<div class="p-head"><span class="label">${t}</span><button class="x" type="button" data-act="closePanel" aria-label="${esc(tx('a11y.close'))}">×</button></div>`;
     if (panelMode === 'post') { b.innerHTML = postForm(); bindPostForm(); return; }
     if (panelMode === 'list') {
       const items = inViewItems();
@@ -1072,10 +1065,10 @@
 
   // near me
   $('#nearMe').addEventListener('click', () => {
-    if (!navigator.geolocation) { toast("This browser can't share your location."); return; }
-    toast('Asking your browser where you are…');
-    navigator.geolocation.getCurrentPosition(pos => { MapView.flyTo(pos.coords.longitude, pos.coords.latitude, 1.4); toast("Here's your area. Nothing about your location is saved."); },
-      () => toast("Location is off for this site. Use search instead."), { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 });
+    if (!navigator.geolocation) { toast(tx('msg.noGeo')); return; }
+    toast(tx('msg.askingGeo'));
+    navigator.geolocation.getCurrentPosition(pos => { MapView.flyTo(pos.coords.longitude, pos.coords.latitude, 1.4); toast(tx('msg.geoOk')); },
+      () => toast(tx('msg.geoOff')), { enableHighAccuracy: false, timeout: 9000, maximumAge: 600000 });
   });
 
   /* ───────── posting: "I see this problem" ───────── */
@@ -1088,7 +1081,7 @@
     placing = true;
     $('#cross').hidden = false; $('#placebar').hidden = false; $('#cta').hidden = true; $('#appMap').classList.add('placing');
     lastLevel = -1; updateLevel();
-    if (MapView.level() === 0) toast('Zoom in to your city or street, or use search at the top.');
+    if (MapView.level() === 0) toast(tx('msg.zoomIn'));
   }
   function stopPlacing() { placing = false; $('#cross').hidden = true; $('#placebar').hidden = true; $('#cta').hidden = false; $('#appMap').classList.remove('placing'); }
   $('#cta').addEventListener('click', startPost);
@@ -1105,10 +1098,10 @@
   function postForm() {
     const P = pending || {};
     return `<form class="post" data-form="post" novalidate>
-      <div class="p-head"><h2 class="h2" style="margin:0;font-size:26px">${esc(W.prompt)}</h2><button class="x" type="button" data-act="closePanel" aria-label="Close">×</button></div>
+      <div class="p-head"><h2 class="h2" style="margin:0;font-size:26px">${esc(W.prompt)}</h2><button class="x" type="button" data-act="closePanel" aria-label="${esc(tx('a11y.close'))}">×</button></div>
       <p class="muted" style="font-style:italic;margin:6px 0 16px">${esc(W.promptHint)}</p>
       <div id="poCheck"></div>
-      <div class="field"><label for="poText">What do you see?</label><textarea class="textarea" id="poText" name="text" maxlength="200" required placeholder="One sentence is enough.">${esc(P.text || '')}</textarea></div>
+      <div class="field"><label for="poText">What do you see?</label><textarea class="textarea" id="poText" name="text" maxlength="200" required placeholder="${esc(tx('ph.oneSentence'))}">${esc(P.text || '')}</textarea></div>
       <div class="field"><label for="poDetails">More detail <span class="muted">(optional)</span></label><textarea class="textarea" id="poDetails" name="details" maxlength="600" style="min-height:64px">${esc(P.details || '')}</textarea></div>
       <div class="field"><label for="poWhere">Where</label><input class="input" id="poWhere" name="where" maxlength="80" value="${esc(P.place + (P.country && P.country !== P.place ? ', ' + P.country : ''))}"></div>
       <fieldset class="field" style="border:0;padding:0"><legend class="flabel" style="font:700 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">How big is it?</legend>
@@ -1119,7 +1112,7 @@
       <fieldset class="field" style="border:0;padding:0"><legend class="flabel" style="font:700 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Topics <span class="muted" style="text-transform:none;font-weight:400">(they link it to similar problems elsewhere)</span></legend>
         <div class="opts">${D.TAGS.map(s => `<label class="opt"><input type="checkbox" name="tag" value="${esc(s)}"${(P.tags || []).includes(s) ? ' checked' : ''}><span>${esc(s)}</span></label>`).join('')}</div></fieldset>
       <div class="field"><label for="poPhoto">Photo <span class="muted">(optional, no faces, names or house numbers)</span></label><input id="poPhoto" type="file" accept="image/*" style="font:13px var(--mono)"></div>
-      <div class="field" id="poAltField" hidden><label for="poAlt">Describe the photo <span class="muted">(for people who can't see it)</span></label><input class="input" id="poAlt" name="photoAlt" maxlength="160" placeholder="For example: a bus stop with a broken roof"></div>
+      <div class="field" id="poAltField" hidden><label for="poAlt">Describe the photo <span class="muted">(for people who can't see it)</span></label><input class="input" id="poAlt" name="photoAlt" maxlength="160" placeholder="${esc(tx('ph.problemTitle'))}"></div>
       <div class="actions" style="justify-content:space-between;margin-top:8px"><button class="btn" type="button" data-act="movePin">Move the pin</button><button class="btn primary" type="submit" id="poSubmit">Post on the map</button></div>
       <p class="small mono muted" style="margin:12px 0 0">${who() ? 'Posting as ' + esc(nameOf(who())) + '. Saved in this browser.' : "You'll join first. What you wrote is kept."}</p>
     </form>`;
@@ -1130,7 +1123,7 @@
     const ph = $('#poPhoto');
     if (ph) ph.addEventListener('change', async () => {
       const f = ph.files && ph.files[0]; draftPhoto = null; $('#poAltField').hidden = !f; if (!f) return;
-      try { draftPhoto = await shrinkPhoto(f); } catch (e) { toast("That photo couldn't be read. Try another one."); }
+      try { draftPhoto = await shrinkPhoto(f); } catch (e) { toast(tx('msg.badPhoto')); }
     });
     forcePost = false;
   }
@@ -1154,7 +1147,7 @@
     if (v.text.length < 12) warn.push('Say a little more about what you see.');
     const lower = ' ' + fold(t) + ' ';
     const hit = PL.find(p => p.pop >= 500000 && p.name.length > 3 && new RegExp('[^a-z]' + escRe(fold(p.name)) + '[^a-z]').test(lower));
-    if (hit && lat != null) { const d = hav(hit.lat, hit.lon, lat, lon); if (d > 300) warn.push(`The text mentions ${hit.name}, but the pin is ${Math.round(d).toLocaleString()} km from it. Is the pin in the right place?`); }
+    if (hit && lat != null) { const d = hav(hit.lat, hit.lon, lat, lon); if (d > 300) warn.push(`The text mentions ${hit.name}, but the pin is ${I18N.number(Math.round(d))} km from it. Is the pin in the right place?`); }
     return { block, warn };
   }
   function approxSpot(lat, lon) {
@@ -1184,7 +1177,7 @@
     draftPhoto = null; pending = null; forcePost = false;
     if (layer !== 'see') setLayer('see');
     refreshMap(); select(p.id); updateChrome(); updateWhere();
-    toast('Pinned. Now others can find it. That was SHARE.');
+    toast(tx('msg.pinned'));
   }
   function shrinkPhoto(file) {
     return new Promise((res, rej) => {
@@ -1196,7 +1189,7 @@
   async function reverseGeocode(lat, lon) {
     try {
       const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 5000);
-      const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon.toFixed(5)}&lat=${lat.toFixed(5)}&lang=en`, { signal: ctrl.signal });
+      const r = await fetch(`https://photon.komoot.io/reverse?lon=${lon.toFixed(5)}&lat=${lat.toFixed(5)}${I18N.photonParam()}`, { signal: ctrl.signal });
       clearTimeout(t); if (!r.ok) return null;
       const j = await r.json(), pr = j.features && j.features[0] && j.features[0].properties; if (!pr) return null;
       const place = pr.city || pr.locality || pr.district || pr.county || pr.name;
@@ -1207,7 +1200,7 @@
   /* ───────── search (places, streets, problems, people) ───────── */
   let sHits = [], sIdx = 0, sSeq = 0;
   function openSearch() {
-    openModal(`<div class="head"><input id="sQ" type="text" placeholder="A city, a street, a problem, a person" aria-label="Search" autocomplete="off"><button class="x" type="button" data-act="closeModal" aria-label="Close">×</button></div><div class="sres" id="sRes"><p class="hint">Try "Hội An", your street, "water", or "designer".</p></div>`, 'search-card');
+    openModal(`<div class="head"><input id="sQ" type="text" placeholder="${esc(tx('ph.search'))}" aria-label="${esc(tx('a11y.searchShort'))}" autocomplete="off"><button class="x" type="button" data-act="closeModal" aria-label="${esc(tx('a11y.close'))}">×</button></div><div class="sres" id="sRes"><p class="hint">Try "Hội An", your street, "water", or "designer".</p></div>`, 'search-card');
     const q = $('#sQ');
     q.addEventListener('input', debounce(runSearch, 160));
     q.addEventListener('keydown', e => {
@@ -1226,7 +1219,7 @@
     const ppl = Object.values(S.profiles).filter(p => fold(p.name + ' ' + p.city + ' ' + p.skills.join(' ')).includes(f)).slice(0, 4).map(p => ({ type: 'person', id: p.id, label: p.name, sub: p.city, g: 'person' }));
     sHits = places.concat(probs, ppl); sIdx = 0; paintHits();
     if (raw.trim().length >= 3) {
-      fetch('https://photon.komoot.io/api/?limit=5&lang=en&q=' + encodeURIComponent(raw.trim())).then(r => r.ok ? r.json() : null).then(j => {
+      fetch('https://photon.komoot.io/api/?limit=5' + I18N.photonParam() + '&q=' + encodeURIComponent(raw.trim())).then(r => r.ok ? r.json() : null).then(j => {
         if (!j || seq !== sSeq) return;
         const streets = (j.features || []).map(ft => {
           const pr = ft.properties, [lon, lat] = ft.geometry.coordinates;
@@ -1257,7 +1250,7 @@
     if (x.type === 'person') { go('#u.' + x.id); return; }
     const fly = () => whenMapReady(() => {
       if (panelMode && panelMode !== 'post') closePanel(); MapView.flyTo(x.lon, x.lat, x.km);
-      if (placing) { toast(`Moved to ${x.label}. Press "Put it here" if that's the place.`); $('#placeHere').focus(); }
+      if (placing) { toast(tx('msg.movedTo', { place: x.label })); $('#placeHere').focus(); }
     });
     if (R.name !== 'map') { pendingAction = fly; go('#map'); } else fly();
   }
@@ -1270,7 +1263,7 @@
     markRead() { const u = who(); if (u) { S.lastRead[u] = now(); save(); updateChrome(); $('#bellDrop').hidden = true; if (R.name === 'me') RENDER.me(R); } },
     seen(id) {
       if (!needMe()) return; const p = S.problems[id], u = who();
-      if (p.by === u) { toast("It's your post, so it already counts you."); return; }
+      if (p.by === u) { toast(tx('msg.ownPost')); return; }
       if (hasSeen(p, u)) p.seen = p.seen.filter(s => s.by !== u); else p.seen.push({ by: u, t: now() });
       commit(hasSeen(p, u) ? 'Counted. That helps others trust the post.' : null);
     },
@@ -1283,7 +1276,7 @@
       ui.join = null;
       commit(before < 3 ? `You're on the team for ${skill}. That's CONNECT.` : `You're on the team for ${skill}.`);
     },
-    leave(id) { const p = S.problems[id]; p.team = p.team.filter(m => m.by !== who()); ui.join = null; commit('You left the team.'); },
+    leave(id) { const p = S.problems[id]; p.team = p.team.filter(m => m.by !== who()); ui.join = null; commit(tx('msg.leftTeam')); },
     follow(id) {
       if (!needMe()) return; const u = who(), a = S.follows[u] = S.follows[u] || [], i = a.indexOf(id);
       if (i >= 0) a.splice(i, 1); else a.push(id);
@@ -1304,11 +1297,11 @@
       ui.del = null; save();
       if (R.name === 'map') { closePanel(); rerender(); toast('Deleted.'); } else { toast('Deleted.'); go('#problems'); }
     },
-    hide(id) { S.problems[id].hidden = true; commit('Hidden from the map. Only the team and the poster see it now.'); },
-    restore(id) { S.problems[id].hidden = false; commit('It shows again.'); },
+    hide(id) { S.problems[id].hidden = true; commit(tx('msg.hidden')); },
+    restore(id) { S.problems[id].hidden = false; commit(tx('msg.shown')); },
     share(id) {
       const url = location.href.split('#')[0] + '#p.' + id;
-      const done = () => toast('Link copied.');
+      const done = () => toast(tx('msg.linkCopied'));
       const fallback = () => openModal(`<h2 id="modalTitle">Link to this problem</h2><input class="input" value="${esc(url)}" readonly onfocus="this.select()"><div class="row"><button class="btn primary" type="button" data-act="closeModal">Done</button></div>`);
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
     },
@@ -1319,8 +1312,8 @@
         <div class="field"><label for="rpNote">Anything to add? <span class="muted">(optional)</span></label><input class="input" id="rpNote" name="note" maxlength="200"></div>
         <div class="row"><button class="btn" type="button" data-act="closeModal">Cancel</button><button class="btn primary" type="submit">Send report</button></div></form>`);
     },
-    modHide(rid) { const r = S.reports.find(x => x.id === rid); if (!r) return; r.status = 'hidden'; if (S.problems[r.target]) S.problems[r.target].hidden = true; commit('Post hidden.'); },
-    modDismiss(rid) { const r = S.reports.find(x => x.id === rid); if (!r) return; r.status = 'dismissed'; commit('Report closed.'); },
+    modHide(rid) { const r = S.reports.find(x => x.id === rid); if (!r) return; r.status = 'hidden'; if (S.problems[r.target]) S.problems[r.target].hidden = true; commit(tx('msg.postHidden')); },
+    modDismiss(rid) { const r = S.reports.find(x => x.id === rid); if (!r) return; r.status = 'dismissed'; commit(tx('msg.reportClosed')); },
     showOnMap(id) { pendingAction = () => whenMapReady(() => select(id, { fly: true })); go('#map'); },
     pick(id) { select(id, { fly: !MapView.isOnScreen((S.problems[id] || S.profiles[id]).lon, (S.problems[id] || S.profiles[id]).lat) }); },
     invite(pid, b) {
@@ -1335,9 +1328,9 @@
     actAs(v) { S.actAs = v || null; ui.ask = ui.join = ui.answer = ui.form = ui.edit = ui.del = null; commit(v ? 'Now acting as ' + nameOf(v) + ' (demo).' : 'Back to you.'); },
     reset() {
       if (!ui.reset) { ui.reset = true; rerender(); setTimeout(() => { if (ui.reset) { ui.reset = false; rerender(); } }, 4000); return; }
-      ui.reset = false; const theme = S.theme; S = seed(); S.theme = theme; S.bannerSeen = true; save(); closePanel(); toast('Demo reset. Only the samples are left.'); go('#home'); rerender();
+      ui.reset = false; const theme = S.theme; S = seed(); S.theme = theme; S.bannerSeen = true; save(); closePanel(); toast(tx('msg.demoReset')); go('#home'); rerender();
     },
-    signOut() { S.me = null; S.actAs = null; commit('Signed out.'); go('#home'); },
+    signOut() { S.me = null; S.actAs = null; commit(tx('msg.signedOut')); go('#home'); },
     movePin() {
       const f = $('#mpanelBody form.post');
       if (f && pending) { const v = readPost(f); Object.assign(pending, { text: v.text, details: v.details, tags: v.tags, needs: v.needs }); }
@@ -1365,20 +1358,20 @@
 
   /* ───────── forms (data-form) ───────── */
   const FORM = {
-    ask(f) { const p = S.problems[f.dataset.id], v = f.q.value.trim(); if (!v) return; p.questions.push({ id: uid('q'), by: who(), text: v, t: now(), answer: null }); ui.ask = null; commit('Asked. The poster and the team will see it.'); },
+    ask(f) { const p = S.problems[f.dataset.id], v = f.q.value.trim(); if (!v) return; p.questions.push({ id: uid('q'), by: who(), text: v, t: now(), answer: null }); ui.ask = null; commit(tx('msg.asked')); },
     answer(f) { const p = S.problems[f.dataset.id], q = p.questions.find(x => x.id === f.dataset.q), v = f.a.value.trim(); if (!q || !v) return; q.answer = { by: who(), text: v, t: now() }; ui.answer = null; commit('Answered.'); },
     project(f) {
       const p = S.problems[f.dataset.id], v = f.name.value.trim(); if (!v) return;
       p.project = { name: v, by: who(), t: now(), updates: [], resolved: null }; ui.form = null;
-      commit(`Project "${v}" formed. That's CREATE. Post an update when you do something.`);
+      commit(tx('msg.projectFormed', { name: v }));
     },
     update(f) { const p = S.problems[f.dataset.id], v = f.u.value.trim(); if (!v) return; const first = !p.project.updates.length; p.project.updates.push({ id: uid('up'), by: who(), text: v, t: now() }); commit(first ? 'Update posted. That\'s ACT.' : 'Update posted.'); },
-    resolve(f) { const p = S.problems[f.dataset.id]; p.project.resolved = { by: who(), note: f.note.value.trim(), t: now() }; closeModal(); commit('Marked resolved. ✓'); },
+    resolve(f) { const p = S.problems[f.dataset.id]; p.project.resolved = { by: who(), note: f.note.value.trim(), t: now() }; closeModal(); commit(tx('msg.resolved')); },
     edit(f) { const p = S.problems[f.dataset.id]; const t = f.text.value.trim(); if (!t) return; p.text = t; p.details = f.details.value.trim() || undefined; p.edited = now(); ui.edit = null; commit('Saved.'); },
     report(f) {
       const reason = (f.querySelector('input[name="reason"]:checked') || {}).value || 'Something else';
       S.reports.push({ id: uid('r'), target: f.dataset.id, by: who() || 'guest', reason, note: f.note.value.trim(), t: now(), status: 'open' });
-      closeModal(); commit('Reported. The team will look at it.');
+      closeModal(); commit(tx('msg.reported'));
     },
     join(f) {
       const err = [], name = f.name.value.trim(), city = f.city.value.trim();
@@ -1394,7 +1387,7 @@
         skills, cares: $$('input[name="care"]:checked', f).map(i => i.value), bio: f.bio.value.trim(), joined: now() };
       S.me = id; S.actAs = null; S.lastRead[id] = now();
       const back = S.returnTo; S.returnTo = null; save();
-      toast(`Welcome, ${name}.` + (m ? '' : " We couldn't find that city, so you won't show on the map yet."));
+      toast(tx('msg.welcome', { name }) + (m ? '' : ' ' + tx('msg.cityNotFound')));
       go(back || '#me'); updateChrome();
     },
     profile(f) {
@@ -1402,9 +1395,9 @@
       pr.name = f.name.value.trim() || pr.name;
       if (m) { pr.city = m.name; pr.country = m.country; pr.lat = m.lat + (Math.random() - 0.5) * 0.04; pr.lon = m.lon + (Math.random() - 0.5) * 0.04; }
       pr.skills = $$('input[name="skill"]:checked', f).map(i => i.value); pr.cares = $$('input[name="care"]:checked', f).map(i => i.value); pr.bio = f.bio.value.trim();
-      commit('Profile saved.');
+      commit(tx('msg.profileSaved'));
     },
-    contact(f) { S.messages.push({ id: uid('m'), name: f.name.value.trim(), text: f.msg.value.trim(), t: now() }); f.reset(); commit('Saved in this browser. In the real version it would go to the team.'); },
+    contact(f) { S.messages.push({ id: uid('m'), name: f.name.value.trim(), text: f.msg.value.trim(), t: now() }); f.reset(); commit(tx('msg.contactSaved')); },
     post(f) { submitPost(f); }
   };
   document.addEventListener('submit', e => {

@@ -381,7 +381,7 @@ a.more:hover::after{transform:translateX(4px)}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--space)}
 .settings{display:grid;gap:18px;max-width:660px}
 .setting{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px}
-.setting h3{margin:0 0 8px;font:900 26px/1 var(--display);text-transform:uppercase}
+.setting h2,.setting h3{margin:0 0 8px;font:900 26px/1 var(--display);text-transform:uppercase}
 .setting p{margin:0 0 14px;font:16px/1.5 var(--body);color:var(--dim)}
 
 /* forms page */

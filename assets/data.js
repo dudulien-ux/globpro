@@ -11,7 +11,7 @@
   'use strict';
 
   var WORDS = {
-    name: '[Project Name]',
+    name: 'GLOBPRO',
     tagline: 'A global map of local problems — Connecting concern into action.',
     headings: {
       problem: 'The Problem',
@@ -93,7 +93,7 @@
   var M = 1, H = 60, D = 1440;
 
   var PEOPLE = [
-    ['team', '[Project Name] team', 'Triêm Tây', 'Vietnam', 15.890, 108.290, ['design', 'engineering', 'content creation', 'event management'], ['starting point', 'collaborators']],
+    ['team', 'GLOBPRO team', 'Triêm Tây', 'Vietnam', 15.890, 108.290, ['design', 'engineering', 'content creation', 'event management'], ['starting point', 'collaborators']],
     ['hoian', 'Designer in Hội An', 'Hội An', 'Vietnam', 15.884, 108.335, ['design', 'event management'], ['waste', 'water']],
     ['hanoi', 'Designer in Hanoi', 'Hanoi', 'Vietnam', 21.005, 105.830, ['design', 'content creation'], ['walking', 'waste']],
     ['hcmc', 'Content creator in Ho Chi Minh City', 'Ho Chi Minh City', 'Vietnam', 10.800, 106.660, ['content creation', 'design'], ['water', 'climate']],
